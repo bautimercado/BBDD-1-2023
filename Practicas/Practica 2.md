@@ -263,3 +263,97 @@ No perdí información porque M13 ∩ M14 => {dominio_vehiculo}
 M13 está en BCNF porque {dominio_vehiculo} es superclave en el esquema.
 
 M14 está en BCNF porque los atributos forman parte de la clave. Toda dependencia funcional que encuentre será trivial.
+
+<u>Clave primaria:</u> {medicion, #parametro, #instrumento,dominio_vehiculo}
+
+<u>Particiones que quedaron en BCNF:</u>
+- M1(<u>cuil_operario</u>, apellido_operario, nombre_operario, fecha_nacimiento)
+- M3(<u>#pozo</u>, descripcion_pozo, fecha_perforacion)
+- M5(<u>medicion</u>, #pozo, cuil_operario, fecha_medicion)
+- M7(<u>#parametro</u>,nombre_parametro, valor_ref)
+- M9(<u>#instrumento</u>, marca_instrumento, modelo_instrumento)
+- M11(<u>medicion, #parametro</u>, valor_medicion)
+- M13(<u>dominio_vehiculo</u>, fecha_adquisicion)
+- M14(<u>medicion, #parametro, #instrumento,dominio_vehiculo</u>)
+
+//Falta 4FN
+
+## 8. FESTIVALES (#festival, denominacion_festival, localidad, cuil_musico, nombre_musico, fecha_nacimiento, #banda, nombre_banda, estilo_musical, #tema, nombre_tema, duracion, instrumento, cuil_auspiciante, url_plataforma_entradas, #locacion)
+
+- Para cada festival se conoce su denominación y la localidad en la que se realiza. Más de un festival podría tener la misma denominación.
+- De cada banda se conoce su nombre y estilo musical.
+- De cada músico se conoce su nombre y su fecha de nacimiento. Tenga en cuenta que varios músicos podrían tener el mismo nombre.
+- Para cada tema interpretado por una banda en un festival se conoce su nombre y duración. Además, de cada músico que participó en el tema se sabe con qué instrumento lo hizo.
+- Los #tema pueden repetirse para las distintas bandas.
+- Un festival puede tener varios auspiciantes, y se vendieron entradas al mismo a través de varias plataformas.
+- Se tiene además un registro de todas las posibles locaciones donde se pueden realizar los festivales.
+
+<u>Dependencias funcionales:</u>
+
+1. #festival -> denominacion_festival, localidad
+2. #banda -> nombre_banda, estilo_musical
+3. cuil_musico -> nombre_musico, fecha_nacimiento
+4. #festival, #banda, #tema -> nombre_tema, duracion
+5. #festival, #banda, #tema, cuil_musico -> instrumento
+
+<u>Claves candidatas</u>
+
+- cc1: {#festival, #banda, cuil_musico, #tema, cuil_auspiciante, url_plataforma_entradas, #locacion}
+
+FESTIVALES no está en BCNF, ya que al menos el determinantes de la DF1 no es superclave del esquema. Particiono FESTIVALES por la DF1.
+
+- F1(<u>#festival</u>, denominacion_festival, localidad)
+- F2(<u>#festival, cuil_musico</u>, nombre_musico, fecha_nacimiento, <u>#banda</u>, nombre_banda, estilo_musical, <u>#tema</u>, nombre_tema, duracion, instrumento, <u>cuil_auspiciante, url_plataforma_entradas, #locacion</u>)
+
+No perdí información porque F1 ∩ F2 => {#festival}
+
+F1 está en BCNF porque {#festival} es superclave en el esquema.
+
+F2 no está en BCNF porque el determinante de la DF2 no es superclave en esa partición. La vuelvo a particionar por la DF2.
+
+- F3(<u>#banda</u>, nombre_banda, estilo_musical)
+- F4(<u>#festival, cuil_musico</u>, nombre_musico, fecha_nacimiento, <u>#banda, #tema</u>, nombre_tema, duracion, instrumento, <u>cuil_auspiciante, url_plataforma_entradas, #locacion</u>)
+
+No perdí información porque F3 ∩ F4 => {#banda}
+
+F3 está en BCNF porque {#banda} es superclave en el esquema.
+
+F4 no está en BCNF porque el determinante de la DF3 no es superclave en el esquema. Particiono F4 por la DF3
+
+- F5(<u>cuil_musico</u>, nombre_musico, fecha_nacimiento)
+- F6(<u>#festival, cuil_musico, #banda, #tema</u>, nombre_tema, duracion, instrumento, <u>cuil_auspiciante, url_plataforma_entradas, #locacion</u>)
+
+No perdí información porque F5 ∩ F6 => {cuil_musico}
+
+F5 está en BCNF porque {cuil_musico} es superclave en el esquema.
+
+F6 no está en BCNF porque el determinante de la DF4 no es superclave en el esquema. Particiono F6 por la DF4.
+
+- F7(<u>#festival, #banda, #tema</u>, nombre_tema, duracion)
+- F8(<u>#festival, cuil_musico, #banda, #tema</u>, instrumento, <u>cuil_auspiciante, url_plataforma_entradas, #locacion</u>)
+
+No perdí información porque F7 ∩ F8 => {#festival, #banda, #tema}
+
+F7 está en BCNF porque {#festival, #banda, #tema} es superclave del esquema.
+
+F8 no está en BCNF porque el determinante de la DF5 no es superclave en ese esquema. Particiono F8 por la DF5.
+
+- F9(<u>#festival, #banda, #tema, cuil_musico</u>, instrumento)
+- F10(<u>#festival, cuil_musico, #banda, #tema, cuil_auspiciante, url_plataforma_entradas, #locacion</u>)
+
+No perdí información porque F9 ∩ F10 => {#festival, #banda, #tema, cuil_musico}
+
+F9 está en BCNF porque {#festival, #banda, #tema, cuil_musico} es superclave de ese esquema.
+
+F10 está en BCNF porque todos los atributos de ese esquema son parte de la clave. Cualquier DF que encontremos es trivial.
+
+<u>Clave primaria:</u> {#festival, #banda, cuil_musico, #tema, cuil_auspiciante, url_plataforma_entradas, #locacion}
+
+<u>Particiones que quedaron en BCNF:</u>
+
+- F1(<u>#festival</u>, denominacion_festival, localidad)
+- F3(<u>#banda</u>, nombre_banda, estilo_musical)
+- F5(<u>cuil_musico</u>, nombre_musico, fecha_nacimiento)
+- F7(<u>#festival, #banda, #tema</u>, nombre_tema, duracion)
+- F9(<u>#festival, #banda, #tema, cuil_musico</u>, instrumento)
+- F10(<u>#festival, cuil_musico, #banda, #tema, cuil_auspiciante, url_plataforma_entradas, #locacion</u>)
