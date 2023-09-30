@@ -449,3 +449,211 @@ La partición F15 está en 4FN porque la DM3 es trivial en ese esquema.
 En F16 está la DM4 que es trivial, por lo tanto F16 está en 4FN.
 
 - //Consultar solución. Debería seguir particionando??
+
+## 9. DISPOSITIVOS (Marca_id, descripMarca, modelo_id, descripModelo, equipo_tipo_id, descripEquipoTipo, nombreEmpresa, cuit, direcciónEmpresa, usuario_id, apyn, direcciónUsuario, cuil, plan_id, descripPlan, importe, equipo_id, imei, fec_alta, fec_baja, observaciones, línea_id, fec_alta_linea, fec_baja_linea)
+
+- Para cada equipo interesa conocer su tipo, modelo, imei, fecha en que se dio de alta, fecha en que se da de baja y las observaciones que sean necesarias.
+- De cada marca se conoce su descripción
+- De cada modelo se conoce su descripción y a qué marca pertenece.
+- Para cada plan, se registra qué empresa lo brinda, descripción e importe del mismo.
+- Para cada tipo de equipo se conoce la descripción
+- Para cada empresa se registra el nombre, cuit y dirección
+- De cada usuario se registra su nombre y apellido, número de documento, dirección y CUIL
+- Para cada línea se necesita registrar qué plan posee, la fecha de alta de la línea, la fecha de baja, el equipo que la posee y el usuario de la misma.
+
+<u>Dependencias funcionales:</u>
+
+1. equipo_id -> equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones
+2. imei -> equipo_id, equipo_tipo_id, modelo_id, fec_alta, fec_baja, observaciones
+3. marca_id -> descripMarca
+4. modelo_id -> descriptModelo, marca_id
+5. plan_id -> cuit, descripPlan, importe
+6. equipo_tipo_id -> descripEquipoTipo
+7. cuit -> nombreEmpresa, direcciónEmpresa
+8. usuario_id -> apyn, direcciónUsuario, cuil
+9. cuil -> apyn, direcciónUsuario, usuario_id
+10. linea_id -> plan_id, fec_alta_linea, fec_baja_linea, equipo_id, cuil
+11. linea_id -> plan_id, fec_alta_linea, fec_baja_linea, imei, cuil
+12. linea_id -> plan_id, fec_alta_linea, fec_baja_linea, equipo_id, usuario_id
+13. linea_id -> plan_id, fec_alta_linea, fec_baja_linea, imei, usuario_id
+
+<u>Claves candidatas:</u>
+
+- cc1: {linea_id}
+
+DISPOSITIVOS no cumple con la definición de BCNF porque al menos el determinante de la DF3 no es superclave en el esquema. Particiono DISPOSITIVOS por la DF3.
+
+- D1(<u>marca_id</u>,descripMarca)
+- D2(Marca_id, modelo_id, descripModelo, equipo_tipo_id, descripEquipoTipo, nombreEmpresa, cuit, direcciónEmpresa, usuario_id, apyn, direcciónUsuario, cuil, plan_id, descripPlan, importe, equipo_id, imei, fec_alta, fec_baja, observaciones, <u>línea_id</u>, fec_alta_linea, fec_baja_linea)
+
+No perdí información porque D1 ∩ D2 => {marca_id}
+
+En D1 vale la DF3, donde el determinante {marca_id} es superclave, por lo tanto está en BCNF
+
+D2 no está en BCNF porque al menos el determinante de la DF4 no es superclave en la partición. Particiono D2 por la DF4.
+
+- D3(<u>modelo_id</u>, descripModelo, marca_id)
+- D4(modelo_id, equipo_tipo_id, descripEquipoTipo, nombreEmpresa, cuit, direcciónEmpresa, usuario_id, apyn, direcciónUsuario, cuil, plan_id, descripPlan, importe, equipo_id, imei, fec_alta, fec_baja, observaciones, <u>línea_id</u>, fec_alta_linea, fec_baja_linea)
+
+No perdí información porque D3 ∩ D4 => {modelo_id}
+
+En D3 vale la DF4, donde el determinante {modelo_id} es superclave, por lo tanto está en BCNF.
+
+D4 no está en BCNF porque al menos el determinante de la DF6 no es superclave en la partición. Particiono D4 por la DF6.
+
+- D5(<u>equipo_tipo_id</u>, descripEquipoTipo)
+- D6(modelo_id, equipo_tipo_id, nombreEmpresa, cuit, direcciónEmpresa, usuario_id, apyn, direcciónUsuario, cuil, plan_id, descripPlan, importe, equipo_id, imei, fec_alta, fec_baja, observaciones, <u>línea_id</u>, fec_alta_linea, fec_baja_linea)
+
+No perdí información porque D5 ∩ D6 => {equipo_tipo_id}
+
+En D5 vale la DF6, donde el determinante {equipo_tipo_id} es superclave, por lo tanto está en BCNF.
+
+D6 no está en BCNF porque al menos el determinante de la DF7 no es superclave en la partición. Particiono D6 por la DF7.
+
+- D7(<u>cuit</u>, nombreEmpresa, direcciónEmpresa)
+- D8(modelo_id, equipo_tipo_id, cuit, usuario_id, apyn, direcciónUsuario, cuil, plan_id, descripPlan, importe, equipo_id, imei, fec_alta, fec_baja, observaciones, <u>línea_id</u>, fec_alta_linea, fec_baja_linea)
+
+No perdí información porque D7 ∩ D8 => {cuit}
+
+En D7 vale la DF7, donde el determinante {cuit} es superclave, por lo tanto está en BCNF.
+
+D8 no está en BCNF porque al menos el determinante de la DF5 no es supercalve en la partición. Particiono D8 por la DF5.
+
+- D9(<u>plan_id</u>, cuit, descripPlan, importe)
+- D10(modelo_id, equipo_tipo_id, usuario_id, apyn, direcciónUsuario, cuil, plan_id, equipo_id, imei, fec_alta, fec_baja, observaciones, <u>línea_id</u>, fec_alta_linea, fec_baja_linea)
+
+No perdí información porque D9 ∩ D10 => {plan_id}
+
+En D9 vale la DF9, donde el determinante {plan_id} es superclave, por lo tanto está en BCNF.
+
+D10 no está en BCNF porque al menos el determinante de la DF8  no es superclave en la partición. Particiono D10 por la DF8
+
+//Consultar a partir de este punto
+
+- D11(<u>usuario_id</u>, apyn, direcciónUsuario, cuil)
+- D12(modelo_id, equipo_tipo_id, usuario_id, plan_id, equipo_id, imei, fec_alta, fec_baja, observaciones, <u>línea_id</u>, fec_alta_linea, fec_baja_linea)
+
+No perdí información porque D11 ∩ D12 => {usuario_id}
+
+En D11 vale la DF8, donde el determinante {usuario_id} es superclave, por lo tanto está en BCNF.
+
+La DF9 no vale ni en D11 ni en D12, aplico el algoritmo de pérdida de DFs para ver si se perdió la DF9:
+
+```cpp
+Res = cuil
+i = 1
+Res = cuil ∪ ((cuil ∩ {marca_id,descripMarca})+ ∩ {marca_id,descripMarca}) = cuil
+
+i = 3
+Res = cuil ∪ ((cuil ∩ {modelo_id, descripModelo, marca_id})+ ∩ modelo_id, descripModelo, marca_id) = cuil
+
+i = 5
+Res = cuil ∪ ((cuil ∩ {equipo_tipo_id, descripEquipoTipo})+ ∩ {equipo_tipo_id, descripEquipoTipo}) = cuil
+
+i = 7
+Res = cuil ∪ ((cuil ∩ {cuit, nombreEmpresa, direcciónEmpresa})+ ∩ {cuit, nombreEmpresa, direcciónEmpresa}) = cuil
+
+i = 9
+Res = cuil ∪ ((cuil ∩ {cuit, nombreEmpresa, direcciónEmpresa})+ ∩ {cuit, nombreEmpresa, direcciónEmpresa}) = cuil
+
+i = 11
+Res = cuil ∪ ((cuil ∩ {usuario_id, apyn, direcciónUsuario, cuil})+ ∩ {usuario_id, apyn, direcciónUsuario, cuil}) = cuil ∪ ((cuil)+ ∩ {usuario_id, apyn, direcciónUsuario, cuil}) = {usuario_id, apyn, direcciónUsuario, cuil}
+```
+
+- Con el atributo cuil logré obtener a los atributos que determinaba en la DF9. Por lo tanto dicha DF no se perdió.
+
+D12 no está en BCNF porque al menos el determinante de la DF1 no es superclave en la partición. Particiono D12 por la DF1.
+
+- D13(<u>equipo_id</u>, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones)
+- D14(usuario_id, plan_id, equipo_id, <u>línea_id</u>, fec_alta_linea, fec_baja_linea)
+
+No perdí información porque D13 ∩ D14 => {equipo_id}
+
+En D13 vale la DF1, cuyo determinante {equipo_id} es superclave, por lo tanto D13 cumple con BCNF.
+
+La DF2 no vale en D13 ni en D14. Aplico el algoritmo para analizar si DF2 se perdió:
+
+```cpp
+Res = imei
+
+i = 1
+Res = imei ∪ ((imei ∩ {marca_id,descripMarca})+ ∩ {marca_id,descripMarca}) = imei
+
+i = 3
+Res = imei ∪ ((imei ∩ {modelo_id, descripModelo, marca_id})+ ∩ {modelo_id, descripModelo, marca_id}) = imei
+
+i = 5
+Res = imei ∪ ((imei ∩ {equipo_tipo_id, descripEquipoTipo})+ ∩ {equipo_tipo_id, descripEquipoTipo}) = imei
+
+i = 7
+Res = imei ∪ ((imei ∩ {cuit, nombreEmpresa, direcciónEmpresa})+ ∩ {cuit, nombreEmpresa, direcciónEmpresa}) = imei
+
+i = 9
+Res = imei ∪ ((imei ∩ {plan_id, cuit, descripPlan, importe})+ ∩ {plan_id, cuit, descripPlan, importe}) = imei
+
+i = 11
+Res = imei ∪ ((imei ∩ {usuario_id, apyn, direcciónUsuario, cuil})+ ∩ {usuario_id, apyn, direcciónUsuario, cuil}) = imei
+
+i = 13
+Res = imei ∪ ((imei ∩ {equipo_id, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones})+ ∩ {equipo_id, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones}) = imei ∪ ((imei)+ ∩ {equipo_id, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones}) = {equipo_id, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones}
+```
+
+- Con el atributo imei pude recuperar todos los atributos que determinaba en la DF2, por lo tanto dicha DF no se perdió.
+
+D14 no está en BCNF porque el determinante de la DF12 no es superclave en esa partición. Particiono D14 por la DF12
+
+- D15(<u>linea_id</u>, plan_id, fec_alta_linea, fec_baja_linea, equipo_id, usuario_id)
+- D16(<u>linea_id</u>)
+
+No perdí información porque D15 ∩ D16 => {linea_id}
+
+D15 está en BCNF porque el determinante de la DF12 es superclave en ese esquema.
+
+La DF11 no está en D15 ni en D16. Aplico el algoritmo de pérdidas de DFs para verificar si se perdió la DF11:
+
+```cpp
+Res = linea_id
+
+i = 1
+Res = linea_id ∪ ((linea_id ∩ {marca_id,descripMarca})+ ∩ {marca_id,descripMarca}) = linea_id
+
+i = 3
+Res = linea_id ∪ ((linea_id ∩ {modelo_id, descripModelo, marca_id})+ ∩ {modelo_id, descripModelo, marca_id}) = linea_id
+
+i = 5
+Res = linea_id ∪ ((linea_id ∩ {equipo_tipo_id, descripEquipoTipo})+ ∩ {equipo_tipo_id, descripEquipoTipo}) = linea_id
+
+i = 7
+Res = linea_id ∪ ((linea_id ∩ {cuit, nombreEmpresa, direcciónEmpresa})+ ∩ {cuit, nombreEmpresa, direcciónEmpresa}) = linea_id
+
+i = 9
+Res = linea_id ∪ ((linea_id ∩ {plan_id, cuit, descripPlan, importe})+ ∩ {plan_id, cuit, descripPlan, importe}) = linea_id
+
+i = 11
+Res = linea_id ∪ ((linea_id ∩ {usuario_id, apyn, direcciónUsuario, cuil})+ ∩ {usuario_id, apyn, direcciónUsuario, cuil}) = linea_id
+
+i = 13
+Res = linea_id ∪ ((linea_id ∩ {equipo_id, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones})+ ∩ {equipo_id, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones}) = linea_id
+
+i = 15
+Res = linea_id ∪ ((linea_id ∩ {linea_id, plan_id, fec_alta_linea, fec_baja_linea, equipo_id, usuario_id})+ ∩ {linea_id, plan_id, fec_alta_linea, fec_baja_linea, equipo_id, usuario_id}) = linea_id ∪ ((linea_id)+ {linea_id, plan_id, fec_alta_linea, fec_baja_linea, equipo_id, usuario_id}) = {linea_id, plan_id, fec_alta_linea, fec_baja_linea, equipo_id, usuario_id}
+```
+
+- Con el atributo linea_id pude obtener todos los atributos que determina en la DF11, por lo tanto dicha DF no se perdió.
+- Lo mismo aplica para la DF10 y DF13
+
+La partición D16 está en BCNF porque el atributo que la conforma es la clave. Todas las DFs que encuentre serán triviales.
+
+Todas las particiones están en 4FN al no haber dependencias multivaluadas.
+
+<u>Esquemas en 4FN: </u>
+
+- D1(<u>marca_id</u>,descripMarca)
+- D3(<u>modelo_id</u>, descripModelo, marca_id)
+- D5(<u>equipo_tipo_id</u>, descripEquipoTipo)
+- D7(<u>cuit</u>, nombreEmpresa, direcciónEmpresa)
+- D9(<u>plan_id</u>, cuit, descripPlan, importe)
+- D11(<u>usuario_id</u>, apyn, direcciónUsuario, cuil)
+- D13(<u>equipo_id</u>, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones)
+- D15(<u>linea_id</u>, plan_id, fec_alta_linea, fec_baja_linea, equipo_id, usuario_id)
+- CP(<u>linea_id</u>)
