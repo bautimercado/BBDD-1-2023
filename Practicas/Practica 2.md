@@ -175,7 +175,32 @@ Clave primaria -> {<u>#suscripcion, email_adicional, #contenido</u>}
 - S11(<u>#suscripcion</u>, email, #plan)
 - S12(<u>#suscripcion, email_adicional, #contenido</u>)
 
-//Falta 4FN
+<u>Dependencias multivaluadas de S12:</u>
+
+1. #suscripcion ->> #contenido
+2. #suscripcion ->> email_adicional
+
+La partición S12 no está en 4FN porque existen dependencias multivaluadas que no son triviales en ese esquema. Particiono ese esquema por la DM1.
+
+- S13(<u>#suscripcion, #contenido</u>)
+- S14(<u>#suscripcion, email_adicional</u>)
+
+S13 está en 4FN porque la DM1 es trivial en ese esquema.
+La partición S14 también está en 4FN porque la DM2 también es trivial para ese esquema.
+
+<u>Particiones que quedaron en 4FN:</u>
+
+- S1(<u>email</u>, nombre_usuario)
+- S3(<u>email_adicional</u>, nombre_adicional)
+- S5(<u>#suscripcion, email_adicional</u>, fecha_adicional)
+- S7(<u>#plan</u>, nombre_plan, texto_condiciones, precio)
+- S9(<u>#contenido</u>, titulo, sinopsis, duracion)
+- S11(<u>#suscripcion</u>, email, #plan)
+- S13(<u>#suscripcion, #contenido</u>)
+- S14(<u>#suscripcion, email_adicional</u>)  => Proyección de S5
+- CP(<u>#suscripcion, email_adicional, #contenido</u>)
+
+- S1, S3, S5, S7, S9, S11 están en 4FN porque carecen de DMs.
 
 ## 7. MEDICION_AMBIENTAL(medicion, #pozo, valor_medicion, #parametro, fecha_medicion, cuil_operario, #instrumento, nombre_parametro, valor_ref, descripcion_pozo, fecha_perforacion, nombre_parametro, apellido_operario, nombre_operario, fecha_nacimiento, marca_instrumento, modelo_instrumento, dominio_vehiculo, fecha_adquisicion)
 
@@ -276,7 +301,42 @@ M14 está en BCNF porque los atributos forman parte de la clave. Toda dependenci
 - M13(<u>dominio_vehiculo</u>, fecha_adquisicion)
 - M14(<u>medicion, #parametro, #instrumento,dominio_vehiculo</u>)
 
-//Falta 4FN
+<u>Dependencias multivaluadas en M14:</u>
+
+1. medicion ->> #parametro
+2. medicion ->> #instrumento   //Deberían ser una sola DM?
+3. ∅ ->> dominio_vehiculo
+
+M14 no está en 4FN, ya que al menos la DM1 no es trivial en esa partición. Particiono por la DM1
+
+- M15(<u>medicion, #parametro</u>)
+- M16(<u>medicion, #instrumento, dominio_vehiculo</u>)
+
+M15 está en 4FN porque la DM1 es trivial para esa partición.
+
+M16 no está en 4FN porque la DM3 no es trivial para esa partición. Particiono por la DM3.
+
+- M17(<u>dominio_vehiculo</u>)
+- M18(<u>medicion, #instrumento</u>)
+
+Tanto M17 como M18 están en 4FN porque las DMs existentes en cada una son triviales.
+
+<u>Particiones que quedaron en 4FN:</u>
+
+- M1(<u>cuil_operario</u>, apellido_operario, nombre_operario, fecha_nacimiento)
+- M3(<u>#pozo</u>, descripcion_pozo, fecha_perforacion)
+- M5(<u>medicion</u>, #pozo, cuil_operario, fecha_medicion)
+- M7(<u>#parametro</u>,nombre_parametro, valor_ref)
+- M9(<u>#instrumento</u>, marca_instrumento, modelo_instrumento)
+- M11(<u>medicion, #parametro</u>, valor_medicion)
+- M13(<u>dominio_vehiculo</u>, fecha_adquisicion)
+- CP(<u>medicion, #parametro, #instrumento,dominio_vehiculo</u>)
+- M15(<u>medicion, #parametro</u>)  =>  Proyección de M11
+- M17(<u>dominio_vehiculo</u>)   =>  Proyección de M13
+- M18(<u>medicion, #instrumento</u>)
+
+M1, M3, M5, M7, M9, M11, y M13 están en 4FN porque carecen de DMs.
+
 
 ## 8. FESTIVALES (#festival, denominacion_festival, localidad, cuil_musico, nombre_musico, fecha_nacimiento, #banda, nombre_banda, estilo_musical, #tema, nombre_tema, duracion, instrumento, cuil_auspiciante, url_plataforma_entradas, #locacion)
 
@@ -357,3 +417,35 @@ F10 está en BCNF porque todos los atributos de ese esquema son parte de la clav
 - F7(<u>#festival, #banda, #tema</u>, nombre_tema, duracion)
 - F9(<u>#festival, #banda, #tema, cuil_musico</u>, instrumento)
 - F10(<u>#festival, cuil_musico, #banda, #tema, cuil_auspiciante, url_plataforma_entradas, #locacion</u>)
+
+<u>Dependencias multivaluadas de F10:</u>
+
+1. ∅ ->> #locacion
+2. #festival ->> cuil_auspiciante
+3. #festival ->> url_plataforma_entradas
+4. #festival, #banda, #tema ->> cuil_musico
+
+La partición F10 no está en 4FN porque al menos la DM1 no es trivial en F10. Particiono F10 por la DM1.
+
+- F11(<u>#locacion</u>)
+- F12(<u>#festival, cuil_musico, #banda, #tema, cuil_auspiciante, url_plataforma_entradas</u>)
+
+La partición F11 cumple con la definción de 4FN porque la DM1 es trivial en ese esquema.
+
+La partición F12 no está en 4FN porque al menos la DM2 no es trivial. Particiono F12 por DM2.
+
+- F13(<u>#festival, cuil_auspiciante</u>)
+- F14(<u>#festival, cuil_musico, #banda, #tema, url_plataforma_entradas</u>)
+
+La partición F13 está en 4FN porque la DM2 es trivial en ese esquema.
+
+La partición F14 no cumple con la definción de 4FN porque al menos la DM3 no es trivial para ese esquema. Particiono F14 por DM3.
+
+- F15(<u>#festival, url_plataforma_entradas</u>)
+- F16(<u>#festival, cuil_musico, #banda, #tema</u>)
+
+La partición F15 está en 4FN porque la DM3 es trivial en ese esquema.
+
+En F16 está la DM4 que es trivial, por lo tanto F16 está en 4FN.
+
+- //Consultar solución. Debería seguir particionando??
