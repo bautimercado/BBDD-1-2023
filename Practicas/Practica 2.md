@@ -657,3 +657,146 @@ Todas las particiones están en 4FN al no haber dependencias multivaluadas.
 - D13(<u>equipo_id</u>, equipo_tipo_id, modelo_id, imei, fec_alta, fec_baja, observaciones)
 - D15(<u>linea_id</u>, plan_id, fec_alta_linea, fec_baja_linea, equipo_id, usuario_id)
 - CP(<u>linea_id</u>)
+
+## 10. ORGANIZACION_EVENTOS (#evento, fecha_evento, motivo_evento, #salon, nombre_salon, #grupo, nombre_grupo, nro_integrantes_grupo, #organizador, nombre_organizador, telefono_organizador, años_exp_organizador, #staff, nombre_staff, telefono_staff, rol_staff)
+
+- De cada evento se conoce un identificador, que es único, la fecha, el motivo, el salón de fiestas donde se desarrollará y el grupo que tocará en el mismo.
+- De cada salón de fiestas posible se conoce un número identificador, único en el sistema y su ubicación.
+- De los grupos se conoce un identificador (único) su nombre y la cantidad de integrantes que lo conforman. Además, se sabe que cada grupo de los registrados en el sistema tiene un contrato de exclusividad con un único organizador.
+- De los organizadores se conoce su nombre, teléfono y los años de experiencia que lleva en su trabajo. También tiene asociado un número que lo identifica inequívocamente.
+- Cada organizador tiene contrato con muchos grupos, sin embargo este solo organiza cada una de sus fechas disponibles con un único grupo, que será el que toque la noche del evento.   // Preguntar por esto
+- Cada evento contrata a una serie de personas que serán el staff del mismo. De cada uno de estos se conoce un identificador, único en el sistema, el nombre, el teléfono y el rol que ocupa.
+
+<u>Dependencias funcionales: </u>
+
+- (df1): #evento -> fecha_evento, motivo_evento, #salon, #grupo
+- (df2): #salon -> nombre_salon
+- (df3): #grupo -> nombre_grupo, nro_integrantes_grupo
+- (df4): #organizador -> nombre_organizador, telefono_organizador, años_exp_organizador
+- (df5): #staff -> nombre_staff, telefono_staff, rol_staff
+- (df6): #organizador, fecha_evento -> #grupo  //Preguntar
+
+<u>Claves candidatas:</u>
+
+- cc1: {#evento, #staff, #organizador}
+
+ORGANIZACION_EVENTOS no está en BCNF porque al menos el determinante de la DF2 no es superclave en el esquema. Lo particiono por la DF2.
+
+- O1(<u>#salon</u>, nombre_salon)
+- O2(<u>#evento</u>, fecha_evento, motivo_evento, #salon, #grupo, nombre_grupo, nro_integrantes_grupo, <u>#organizador</u>, nombre_organizador, telefono_organizador, años_exp_organizador, <u>#staff</u>, nombre_staff, telefono_staff, rol_staff)
+
+No perdí información porque O1 ∪ O2 => {#salon}
+
+O1 está en BCNF porque el determinante {#salon} de la DF2 es superclave en la partición.
+
+O2 no está en BCNF porque al menos el determinante de la DF3 no es superclave en la partición. La particiono por la DF3.
+
+- O3(<u>#grupo</u>, nombre_grupo, nro_integrantes_grupo)
+- O4(<u>#evento</u>, fecha_evento, motivo_evento, #salon, #grupo, <u>#organizador</u>, nombre_organizador, telefono_organizador, años_exp_organizador, <u>#staff</u>, nombre_staff, telefono_staff, rol_staff)
+
+No perdí información porque O3 ∪ O4 => {#grupo}
+
+O3 está en BCNF porque el determinante {#grupo} de la DF3 es superclave en el esquema.
+
+O4 no está en BCNF porque al menos el determinante de la DF4 no es superclave en la partición. Particiono por la DF4
+
+- O5(<u>#organizador</u>, nombre_organizador, telefono_organizador, años_exp_organizador)
+- O6(<u>#evento</u>, fecha_evento, motivo_evento, #salon, #grupo, <u>#organizador</u>, <u>#staff</u>, nombre_staff, telefono_staff, rol_staff)
+
+No perdí información porque O5 ∪ O6 => {#organizador}
+
+O5 está en BCNF porque el determinante {#organizador} de la DF4 es superclave en el esquema.
+
+O6 no está en BCNF porque al menos el determinante de la DF5 no es superclave en el esquema. Particiono por la DF5.
+
+- O7(<u>#staff</u>, nombre_staff, telefono_staff, rol_staff)
+- O8(<u>#evento</u>, fecha_evento, motivo_evento, #salon, #grupo, <u>#organizador</u>, <u>#staff</u>)
+
+No perdí información porque O7 ∪ O8 => {#staff}
+
+O7 está en BCNF porque el determinante {#staff} es superclave en el esquema.
+
+O8 no está en BCNF porque al menos el determinante de la DF1 no es superclave en el esquema. Particiono por la DF1.
+
+- O9(<u>#evento</u>, fecha_evento, motivo_evento, #salon, #grupo)
+- O10(<u>#evento, #organizador, #staff</u>)
+
+No perdí información porque O9 ∪ O10 => {#evento}
+
+O9 está en BCNF porque el determinante {#evento} es superclave del esquema.
+
+<u>Aplico el algoritmo de pérdida de DFs para ver si perdí la DF6:</u>
+
+```cpp
+Res = {#organizador, fecha_evento}
+
+i = 1
+Res = {#organizador, fecha_evento} ∪ (({#organizador, fecha_evento} ∩ {#salon, nombre_salon})+ ∩ {#salon, nombre_salon}) = {#organizador, fecha_evento}
+
+i = 3
+Res = {#organizador, fecha_evento} ∪ (({#organizador, fecha_evento} ∩ {#grupo, nombre_grupo, nro_integrantes_grupo})* ∩ {#grupo, nombre_grupo, nro_integrantes_grupo})
+
+i = 5
+Res = {#organizador, fecha_evento} ∪ (({#organizador, fecha_evento} ∩ {#organizador, nombre_organizador, telefono_organizador, años_exp_organizador})* ∩ {#organizador, nombre_organizador, telefono_organizador, años_exp_organizador}) = {#organizador, fecha_evento} ∪ (({#organizador})* ∩ {#organizador, nombre_organizador, telefono_organizador, años_exp_organizador}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador}
+
+i = 7
+Res = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∩ {#staff, nombre_staff, telefono_staff, rol_staff})* ∩ {#staff, nombre_staff, telefono_staff, rol_staff}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador}
+
+i = 9
+Res = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∩ {#evento, fecha_evento, motivo_evento, #salon, #grupo})* ∩ {#evento, fecha_evento, motivo_evento, #salon, #grupo}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({fecha_evento})* ∩ {#evento, fecha_evento, motivo_evento, #salon, #grupo}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador}
+
+Res cambió.
+
+i = 1
+Res = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∩ {#salon, nombre_salon})+ ∩ {#salon, nombre_salon}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador}
+
+i = 3
+Res = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∩ {#grupo, nombre_grupo, nro_integrantes_grupo})* ∩ {#grupo, nombre_grupo, nro_integrantes_grupo}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador}
+
+i = 5
+Res = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∩ {#organizador, nombre_organizador, telefono_organizador, años_exp_organizador})* ∩ {#organizador, nombre_organizador, telefono_organizador, años_exp_organizador}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador}
+
+i = 7
+Res = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∩ {#staff, nombre_staff, telefono_staff, rol_staff})* ∩ {#staff, nombre_staff, telefono_staff, rol_staff}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador}
+
+i = 9
+Res = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∩ {#evento, fecha_evento, motivo_evento, #salon, #grupo})* ∩ {#evento, fecha_evento, motivo_evento, #salon, #grupo}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador} ∪ (({fecha_evento})* ∩ {#evento, fecha_evento, motivo_evento, #salon, #grupo}) = {#organizador, fecha_evento, nombre_organizador, telefono_organizador, años_exp_organizador}
+```
+
+- Con {#organizador, fecha_evento} no pude obtener #grupo.
+- Por lo tanto, la DF6 se perdió. El esquema no puede ser llevado a BCNF.
+
+<u>Llevo el esquema a 3FN:</u>
+
+- O1(<u>#evento</u>, fecha_evento, motivo_evento, #salon, #grupo)
+- O2(<u>#salon</u>, nombre_salon)
+- O3(<u>#grupo</u>, nombre_grupo, nro_integrantes_grupo)
+- O4(<u>#organizador</u>, nombre_organizador, telefono_organizador, años_exp_organizador)
+- O5(<u>#staff</u>, nombre_staff, telefono_staff, rol_staff)
+- O6(<u>#organizador, fecha_evento</u>, #grupo)
+- O7(<u>#evento, #staff, #organizador</u>)
+
+<u>Dependencias multivaluadas de O7:</u>
+
+- (dm1): #evento ->> #staff
+
+O7 no está en 4FN porque la DM1 no es trivial en dicho esquema. Particiono O7 por la DM1.
+
+- O8(<u>#evento, #staff</u>)
+- O9(<u>#evento, #organizador</u>)
+
+En O8 vale la DM1 la cuál es trivial, por lo tanto O8 está en 4FN.
+
+<u>Particiones que quedaron en 4FN:</u>
+
+- O1(<u>#evento</u>, fecha_evento, motivo_evento, #salon, #grupo)
+- O2(<u>#salon</u>, nombre_salon)
+- O3(<u>#grupo</u>, nombre_grupo, nro_integrantes_grupo)
+- O4(<u>#organizador</u>, nombre_organizador, telefono_organizador, años_exp_organizador)
+- O5(<u>#staff</u>, nombre_staff, telefono_staff, rol_staff)
+- O6(<u>#organizador, fecha_evento</u>, #grupo)
+- O8(<u>#evento, #staff</u>)
+- O9(<u>#evento, #organizador</u>)
+- CP(<u>#evento, #staff, #organizador</u>)
+
+O1, O2, O3, O4, O5, y O6 están en 4FN porque carecen de DMs.
