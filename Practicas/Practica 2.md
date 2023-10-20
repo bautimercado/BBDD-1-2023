@@ -304,7 +304,7 @@ M14 está en BCNF porque los atributos forman parte de la clave. Toda dependenci
 <u>Dependencias multivaluadas en M14:</u>
 
 1. medicion ->> #parametro
-2. medicion ->> #instrumento   //Deberían ser una sola DM?
+2. medicion ->> #instrumento   //Deberían ser una sola DM la DM1 y DM2?
 3. ∅ ->> dominio_vehiculo
 
 M14 no está en 4FN, ya que al menos la DM1 no es trivial en esa partición. Particiono por la DM1

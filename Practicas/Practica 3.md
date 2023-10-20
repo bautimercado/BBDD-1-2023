@@ -100,3 +100,81 @@ Indicar si las siguientes consultas obtienen el resultado correcto (sin importar
     - La consulta no es correcta.
       - El atributo #pasajero no existe en la relación RESERVAS
       - Me trae las reservas cuyo monto es menor qué 99000
+
+# 5.- Choferes (6)
+
+- DUEÑO(<u>id_dueño</u>, nombre, teléfono, dirección, dni)
+- CHOFER(<u>id_chofer</u>, nombre, teléfono, dirección,fecha_licencia_desde, fecha_licencia_hasta, dni)
+- AUTO(<u>patente</u>, id_dueño, id_chofer, marca, modelo, año)
+- VIAJE(<u>patente</u>, hora_desde, hora_hasta, origen, destino, tarifa, metraje)
+
+## a) Listar el dni, nombre y teléfono de todos los dueños que NO son choferes
+
+```cpp
+dueños ← π dni (DUEÑO)
+choferes ← π dni (CHOFER)
+solo_dueños ← dueños - choferes
+
+π nombre, teléfono, dni (DUEÑO ⨝ solo_dueños)
+```
+
+## b) Listar la patente y el id_chofer de todos los autos a cuyos choferes les caduca la licencia el 01/01/2024
+
+```cpp
+choferes_con_licencia_vencida_en_2024 ← π id_chofer (σ fecha_licencia_hasta like '01012024' (CHOFER))
+
+π patente, id_chofer (AUTO ⨝ choferes_con_licencia_vencida_en_2024)
+```
+
+# 6.- Estudiantes y carreras (7)
+
+- ESTUDIANTE(<u>#legajo</u>, nombreCompleto, nacionalidad, añoDeIngreso, códigoDeCarrera)
+- CARRERA(<u>códigoDeCarrera</u>, nombre)
+- INSCRIPCIONAMATERIA(<u>#legajo, códigoDeMateria</u>)
+- MATERIA(<u>códigoDeMateria</u>, nombre)
+
+## a) Obtener el nombre de los estudiantes que ingresaron en 2019.
+
+```cpp
+π nombreCompleto (σ añoDeIngreso == '2019' (ESTUDIANTE))
+```
+
+## b) Obtener el nombre de los estudiantes con nacionalidad “Argentina” que NO estén en la carrera con código “LI07”
+
+```cpp
+ESTUDIANTES_ARGENTINOS ← π #legajo (σ nacionalidad="Argentina" (ESTUDIANTE))
+
+ESTUDIANTES_ARGENTINOS_LI07 ← π #legajo (σ códigoDeCarrera="LI07" (ESTUDIANTES_ARGENTINOS))
+
+ESTUDIANTES_ARGENTINOS_NO_LI07 ← ESTUDIANTES_ARGENTINOS - ESTUDIANTES_ARGENTINOS_LI07
+
+π nombreCompleto (ESTUDIANTE ⨝ ESTUDIANTES_ARGENTINOS_NO_LI07)
+```
+
+## c) Obtener el legajo de los estudiantes que se hayan anotado en TODAS las materias.
+
+```cpp
+TODAS_LAS_MATERIAS ← códigoDeMateria (MATERIA)
+INSCRIPCIONAMATERIA % TODAS_LAS_MATERIAS
+```
+
+# 7.- Cursos (8)
+
+- LUGAR_TRABAJO(<u>#empleado, #departamento</u>)
+- CURSO_EXIGIDO(<u>#departamento, #curso</u>)
+- CURSO_REALIZADO(<u>#empleado, #curso</u>)
+
+## a) ¿Quiénes son los empleados que han hecho todos los cursos, independientemente de qué departamento los exija?
+
+```cpp
+CURSOS ← π #curso (CURSO_EXIGIDO ⨯ CURSO_REALIZADO)
+CURSO_REALIZADO % CURSOS
+```
+
+## b) ¿Quiénes son los empleados que ya han realizado todos los cursos exigidos por sus departamentos?
+
+```cpp
+CursosARealizar ← π	#empleado, #curso (LUGAR_TRABAJO ⨝ CURSO_EXIGIDO)
+EmpleadosConCursosNoHechos ← CursosARealizar - CURSO_REALIZADO
+π #empleado (LUGAR_TRABAJO) - π #empleado (EmpleadosConCursosNoHechos)
+```
