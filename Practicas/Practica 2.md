@@ -304,7 +304,7 @@ M14 está en BCNF porque los atributos forman parte de la clave. Toda dependenci
 <u>Dependencias multivaluadas en M14:</u>
 
 1. medicion ->> #parametro
-2. medicion ->> #instrumento   //Deberían ser una sola DM la DM1 y DM2?
+2. medicion ->> #instrumento
 3. ∅ ->> dominio_vehiculo
 
 M14 no está en 4FN, ya que al menos la DM1 no es trivial en esa partición. Particiono por la DM1
@@ -447,8 +447,6 @@ La partición F14 no cumple con la definción de 4FN porque al menos la DM3 no e
 La partición F15 está en 4FN porque la DM3 es trivial en ese esquema.
 
 En F16 está la DM4 que es trivial, por lo tanto F16 está en 4FN.
-
-- //Consultar solución. Debería seguir particionando??
 
 ## 9. DISPOSITIVOS (Marca_id, descripMarca, modelo_id, descripModelo, equipo_tipo_id, descripEquipoTipo, nombreEmpresa, cuit, direcciónEmpresa, usuario_id, apyn, direcciónUsuario, cuil, plan_id, descripPlan, importe, equipo_id, imei, fec_alta, fec_baja, observaciones, línea_id, fec_alta_linea, fec_baja_linea)
 
@@ -674,12 +672,12 @@ Todas las particiones están en 4FN al no haber dependencias multivaluadas.
 - (df3): #grupo -> nombre_grupo, nro_integrantes_grupo, #organizador
 - (df4): #organizador -> nombre_organizador, telefono_organizador, años_exp_organizador
 - (df5): #staff -> nombre_staff, telefono_staff, rol_staff
-- (df6): #organizador, fecha_evento -> #grupo  //Preguntar
+- (df6): #organizador, fecha_evento -> #grupo  //Preguntar  => Debería ser #evento
 
 <u>Claves candidatas:</u>
 
 - cc1: {#evento, #staff}
-- cc2: {#organizador, fecha_evento, #staff}
+- cc2: {#organizador, fecha_evento, #staff}  => No debería estar.
 
 ORGANIZACION_EVENTOS no está en BCNF porque al menos el determinante de la DF2 no es superclave en el esquema. Lo particiono por la DF2.
 
