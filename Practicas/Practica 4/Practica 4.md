@@ -20,6 +20,8 @@ WHERE dni NOT IN (SELECT dni
 
 ### b. Listar la patente y el id_chofer de todos los autos a cuyos choferes les caduca la licencia el 01/01/2024
 
+// Se puede usar el natural join??
+
 ```sql
 SELECT a.patente, a.id_chofer
 FROM AUTO as a NATURAL JOIN CHOFER as c
@@ -137,3 +139,431 @@ CREATE USER 'reparacion_dn_schema'@'localhost'
 
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER ON reparacion_dn.* TO 'reparacion_dn_schema'@'localhost';
 ```
+
+## 2. Listar dni, nombre y apellido de todos los clientes ordenados por dni en forma ascendente. Realice la consulta en ambas bases. ¿Qué diferencia nota en cuanto a performance? ¿Arrojan los mismos resultados? ¿Qué puede concluir en base a las diferencias halladas?
+
+```sql
+USE reparacion;
+SHOW TABLES;
+
++----------------------+
+| Tables_in_reparacion |
++----------------------+
+| cliente              |
+| reparacion           |
+| repuestoreparacion   |
+| revisionreparacion   |
+| sucursal             |
++----------------------+
+
+DESCRIBE cliente;
+
++-----------------------+--------------+------+-----+---------+-------+
+| Field                 | Type         | Null | Key | Default | Extra |
++-----------------------+--------------+------+-----+---------+-------+
+| dniCliente            | int          | NO   | PRI | NULL    |       |
+| nombreApellidoCliente | varchar(255) | NO   |     | NULL    |       |
+| domicilioCliente      | varchar(255) | NO   |     | NULL    |       |
+| ciudadCliente         | varchar(255) | YES  |     | NULL    |       |
+| tarjetaPrimaria       | varchar(255) | YES  |     | NULL    |       |
+| tarjetaSecundaria     | varchar(255) | YES  |     | NULL    |       |
++-----------------------+--------------+------+-----+---------+-------+
+```
+
+```sql
+SELECT dniCliente, nombreApellidoCliente
+FROM cliente
+ORDER BY dniCliente ASC;
+
+-- 20000 rows in set (0.09 sec)
+```
+
+```sql
+USE reparacion_dn;
+SHOW TABLES;
+
++-------------------------+
+| Tables_in_reparacion_dn |
++-------------------------+
+| reparacion              |
++-------------------------+
+
+DESCRIBE reparacion;
+
++----------------------------+--------------+------+-----+---------+-------+
+| Field                      | Type         | Null | Key | Default | Extra |
++----------------------------+--------------+------+-----+---------+-------+
+| codSucursal                | int          | YES  |     | NULL    |       |
+| dniCliente                 | int          | NO   | PRI | NULL    |       |
+| fechaInicioReparacion      | datetime     | NO   | PRI | NULL    |       |
+| cantDiasReparacion         | int          | YES  |     | NULL    |       |
+| telefonoReparacionCliente  | varchar(45)  | YES  |     | NULL    |       |
+| direccionReparacionCliente | varchar(255) | YES  |     | NULL    |       |
+| ciudadReparacionCliente    | varchar(255) | YES  |     | NULL    |       |
+| tarjetaReparacion          | varchar(255) | YES  |     | NULL    |       |
+| nombre                     | varchar(255) | NO   |     | NULL    |       |
+| domicilioSucursal          | varchar(255) | YES  |     | NULL    |       |
+| ciudadSucursal             | varchar(45)  | YES  |     | NULL    |       |
+| encargadoSucursal          | varchar(45)  | YES  |     | NULL    |       |
+| m2                         | int          | YES  |     | NULL    |       |
+| nombreApellidoCliente      | varchar(255) | NO   |     | NULL    |       |
+| domicilioCliente           | varchar(255) | NO   |     | NULL    |       |
+| ciudadCliente              | varchar(255) | YES  |     | NULL    |       |
+| tarjetaPrimaria            | varchar(255) | YES  |     | NULL    |       |
+| tarjetaSecundaria          | varchar(255) | YES  |     | NULL    |       |
+| repuestoReparacion         | varchar(30)  | NO   | PRI | NULL    |       |
+| empleadoReparacion         | varchar(30)  | NO   | PRI |         |       |
++----------------------------+--------------+------+-----+---------+-------+
+```
+
+```sql
+SELECT dniCliente, nombreApellidoCliente
+FROM reparacion
+ORDER BY dniCliente ASC;
+
+-- 162252 rows in set (0.28 sec)
+```
+
+- La consulta en __reparacion__ es mucho más eficiente que en __reparacion_dn__.
+- Además del tiempo, en la tabla __cliente__ de __reparacion__ hay más clientes que en la de __reparacion__ de __reparacion_dn__.
+- La conclución es que el proceso de normalización también favorece al tiempo de resolución de las consultas (más allá de si estén optimizadas o no).
+
+## 3. Hallar aquellos clientes que para todas sus reparaciones siempre hayan usado su tarjeta de crédito primaria (nunca la tarjeta secundaria). Realice la consulta en ambas bases.
+
+// Preguntar como hacer para que los clientes aparezcan una sola vez.
+
+```sql
+USE reparacion;
+
+SELECT c.dniCliente, c.nombreApellidoCliente
+FROM cliente as c NATURAL JOIN reparacion as r
+WHERE c.tarjetaPrimaria = r.tarjetaReparacion
+    AND c.dniCliente NOT IN (
+        SELECT c.dniCliente
+        FROM cliente as c NATURAL JOIN reparacion as r
+        WHERE c.tarjetaSecundaria = r.tarjetaReparacion
+    )
+GROUP BY c.dniCliente;
+
+-- Son lo mismo??
+
+SELECT c.dniCliente, c.nombreApellidoCliente
+FROM cliente as c NATURAL JOIN reparacion as r
+WHERE c.tarjetaPrimaria = r.tarjetaReparacion
+    AND c.tarjetaSecundaria <> r.tarjetaReparacion;
+```
+
+```sql
+USE reparacion_dn;
+
+SELECT dniCliente, nombreApellidoCliente
+FROM reparacion
+WHERE tarjetaPrimaria = tarjetaReparacion
+    and dniCliente NOT IN (
+        SELECT dniCliente
+        FROM reparacion
+        WHERE tarjetaSecundaria = tarjetaReparacion
+    );
+```
+
+## 4. Crear una vista llamada ‘sucursalesPorCliente’ que muestre los dni de los clientes y los códigos de sucursales de la ciudad donde vive el cliente. Cree la vista en ambas bases.
+
+```sql
+USE reparacion;
+
+CREATE VIEW sucursalesPorCliente AS
+SELECT c.dniCliente, s.codSucursal
+FROM cliente as c INNER JOIN sucursal s
+    ON c.ciudadCliente = s.ciudadSucursal;
+```
+
+```sql
+USE reparacion_dn;
+
+CREATE VIEW sucursalesPorCliente AS
+SELECT dniCliente, codSucursal
+FROM reparacion
+WHERE ciudadCliente = ciudadSucursal;
+```
+
+## 5. En la base normalizada, hallar los clientes que dejaron vehículos a reparar en todas las sucursales de la ciudad en la que viven
+
+- Restricción: resolver este ejercicio sin usar la cláusula “NOT EXIST”.
+- Nota: limite su consulta a los primeros 100 resultados, caso contrario el tiempo que tome puede ser excesivo.
+
+### 5.1. Realice la consulta sin utilizar la vista creada anteriormente
+
+// Preguntar cuál forma es mejor
+```sql
+USE reparacion;
+
+-- Solo preguntar si sería así si se usará NOT EXISTS
+SELECT c.dniCliente, c.nombreApellidoCliente
+FROM cliente as c
+WHERE NOT EXISTS (
+    SELECT s.codSucursal
+    FROM sucursal as s
+    WHERE s.ciudadSucursal = c.ciudadCliente;
+
+    EXCEPT
+
+    SELECT r.codSucursal
+    FROM reparacion as r
+    WHERE r.dniCliente = c.dniCliente;
+)
+LIMIT 100;
+
+-- Opción 1
+SELECT c.dniCliente, c.nombreApellidoCliente
+FROM reparacion as r NATURAL JOIN cliente as c
+    NATURAL JOIN sucursal as s
+WHERE c.ciudadCliente = s.ciudadSucursal
+LIMIT 100;
+
+-- Opción 2
+SELECT c.dniCliente, c.nombreApellidoCliente
+FROM cliente as c
+WHERE c.dniCliente IN (
+    SELECT r.dniCliente
+    FROM reparacion as r
+    WHERE r.codSucursal IN (
+        SELECT s.codSucursal
+        FROM sucursal as s
+        WHERE s.ciudadSucursal = c.ciudadCliente
+    )
+)
+LIMIT 100;
+```
+
+```sql
+USE reparacion_dn;
+
+SELECT dniCliente, nombreApellidoCliente
+FROM reparacion
+WHERE dniCliente IN (
+    SELECT dniCliente
+    FROM reparacion
+    WHERE codSucursal IN (
+        SELECT codSucursal
+        FROM reparacion
+        WHERE ciudadSucursal = ciudadCliente
+    )
+)
+LIMIT 100;
+-- Preguntar de qué otra forma se puede hacer pq tarda mucho
+```
+
+### 5.2. Realice la consulta utilizando la vista creada anteriormente
+
+```sql
+USE reparacion;
+
+SELECT dniCliente, nombreApellidoCliente
+FROM cliente NATURAL JOIN sucursalesPorCliente
+    NATURAL JOIN reparacion
+GROUP BY dniCliente, nombreApellidoCliente
+LIMIT 100;
+```
+
+```sql
+USE reparacion_dn;
+
+SELECT r.dniCliente, r.nombreApellidoCliente
+FROM reparacion as r NATURAL JOIN sucursalesPorCliente as s
+LIMIT 100;
+```
+
+# En la base normalizada realice los siguientes ejercicios:
+
+## 6. Agregar la siguiente tabla:
+
+REPARACIONESPORCLIENTE
+
+- idRC: int(11) PK AI
+- dniCliente: int(11)
+- cantidadReparaciones: int(11)
+- fechaultimaactualizacion: datetime
+- usuario: char(16)
+
+```sql
+USE reparacion;
+
+CREATE TABLE reparacionesporcliente (
+    idRC INT(11) AUTO_INCREMENT PRIMARY KEY,
+    dniCliente INT(11),
+    cantidadReparaciones INT(11),
+    fechaUltimaActualizacion DATE,
+    usuario CHAR(16)
+);
+```
+
+## 7. Crear un Stored Procedure que realice los siguientes pasos dentro de una transacción:
+
+### 7.1. Realizar una consulta que para cada cliente (identificado por dniCliente), calcule la cantidad de reparaciones que tiene registradas. Registrar la fecha en la que se realiza la consulta y el usuario con el que la realizó.
+
+
+### 7.2. Guardar el resultado de la consulta en un cursor.
+
+### 7.3. Iterar el cursor e insertar los valores correspondientes en la tabla REPARACIONESPORCLIENTE.
+
+```sql
+DELIMITER //
+CREATE PROCEDURE cantidadDeReparacionesPorCliente()
+BEGIN
+    DECLARE done TINYINT DEFAULT 0;
+    DECLARE clienteDNI INT;
+    DECLARE cantReparaciones INT;
+    DECLARE fechaActual DATE;
+
+    DECLARE cursorCantidadReparaciones CURSOR FOR
+        SELECT dniCliente, COUNT(*) AS cantidadReparaciones, CURDATE() AS fechaUltimaActualizacion
+        FROM reparacion
+        GROUP BY dniCliente;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    OPEN cursorCantidadReparaciones;
+    START TRANSACTION;
+
+    loop_cursor: LOOP
+        FETCH NEXT FROM cursorCantidadReparaciones INTO clienteDNI, cantReparaciones, fechaActual;
+
+        IF done = 1 THEN
+            LEAVE loop_cursor;
+        END IF;
+
+        INSERT INTO reparacionesporcliente (dniCliente, cantidadReparaciones, fechaUltimaActualizacion, usuario)
+        VALUES (clienteDNI, cantReparaciones, fechaActual, CURRENT_USER());
+    END LOOP;
+
+    CLOSE cursorCantidadReparaciones;
+    COMMIT;
+END //
+DELIMITER;
+
+CALL cantidadDeReparacionesPorCliente();
+```
+
+## 8. Crear un Trigger de modo que al insertar un dato en la tabla REPARACION, se actualice la cantidad de reparaciones del cliente, la fecha de actualización y el usuario responsable de la misma (actualiza la tabla REPARACIONESPORCLIENTE).
+
+```sql
+CREATE TRIGGER actualizar_cantidad_reparaciones
+AFTER INSERT ON reparacion FOR EACH ROW
+BEGIN
+    UPDATE reparacionesporcliente
+    SET cantidadReparaciones = cantidadReparaciones + 1
+    WHERE dniCliente = NEW.dniCliente;
+END;
+```
+
+## 9. Crear un stored procedure que sirva para agregar una reparación, junto con una revisión de un empleado (REVISIONREPARACION) y un repuesto (REPUESTOREPARACION) relacionados dentro de una sola transacción. El stored procedure debe recibir los siguientes parámetros: dniCliente, codSucursal, fechaReparacion, cantDiasReparacion, telefonoReparacion, pagoConTarjetaPrimaria (booleano), empleadoReparacion, repuestoReparacion. Los atributos restantes deben ser obtenidos de la tabla Cliente.
+
+```SQL
+DELIMITER //
+CREATE PROCEDURE agregarReparacionRevisionRepuesto(IN dniCliente INT(11), IN codSucursal INT, IN fechaReparacion DATE, IN cantDiasReparacion INT, IN telefonoReparacion VARCHAR(45), IN pagoConTarjetaPrimaria BIT, IN empleadoReparacion VARCHAR(30), IN repuestoReparacion VARCHAR(30))
+BEGIN
+    -- Puede ser que cliente no tenga telefono en la tabla?
+
+END //
+DELIMITER;
+```
+
+## 10.
+
+## 11. Considerando la siguiente consulta:
+
+```sql
+EXPLAIN select count(r.dniCliente)
+from reparacion r, cliente c, sucursal s, revisionreparacion rv
+where r.dnicliente=c.dnicliente
+    and r.codsucursal=s.codsucursal
+    and r.dnicliente=rv.dnicliente
+    and r.fechainicioreparacion=rv.fechainicioreparacion
+    and empleadoreparacion = 'Maidana'
+    and s.m2<200
+    and s.ciudadsucursal='La Plata';
+```
+
+## Analice su plan de ejecución mediante el uso de la sentencia EXPLAIN.
+
+![resultado-explain](img/Clipboard01.png)
+
+### 11.1. ¿Qué atributos del plan de ejecución encuentra relevantes para evaluar la performance de la consulta?
+
+- Los atributos relevantes para la performance de la consulta son r.dniCliente y r.fechaInicioReparacion.
+
+### 11.2. Observe en particular el atributo type ¿cómo se están aplicando los JOIN entre las tablas involucradas?
+
+//Preguntar
+- Los primeros dos JOIN se aplican para todas las tuplas de todas las tablas.
+- Los últimos no, uno usa r.dniCliente, el otro usa r.dniCliente y r.fechaInicioReparacion.
+
+### 11.3. Según lo que observó en los puntos anteriores, ¿qué mejoras se pueden realizar para optimizar la consulta?
+
+- Podríamos usar NATURAL JOIN para reparacion cliente (por dniCliente), sucursal (por codSucursal) y revisionreparacion (por dniCliente y fechaInicioReparacion)
+
+### 11.4. Aplique las mejoras propuestas y vuelva a analizar el plan de ejecución. ¿Qué cambios observa?
+
+```sql
+select count(r.dniCliente)
+from reparacion r NATURAL JOIN cliente c
+    NATURAL JOIN sucursal s
+    NATURAL JOIN revisionreparacion rv
+where r.dnicliente=c.dnicliente
+    and r.codsucursal=s.codsucursal
+    and r.dnicliente=rv.dnicliente
+    and r.fechainicioreparacion=rv.fechainicioreparacion
+    and empleadoreparacion = 'Maidana'
+    and s.m2<200
+    and s.ciudadsucursal='La Plata';
+```
+
+- No hay cambios, ayuda xd.
+
+# Índices.
+
+## 1. Escriba una consulta para obtener la información de aquellos clientes cuyo nombre empiece con la letra “D”. Utilice la sentencia EXPLAIN para analizar los atributos relevantes del plan de ejecución de esta consulta, preste especial atención a los índices utilizados y el número estimado de filas a analizar.
+
+```sql
+EXPLAIN
+SELECT *
+FROM cliente
+WHERE nombreApellidoCliente like 'D%';
+```
+
+Resultado:
+
+```sql
++----+-------------+---------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+| id | select_type | table   | partitions | type | possible_keys | key  | key_len | ref  | rows  | filtered | Extra       |
++----+-------------+---------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+|  1 | SIMPLE      | cliente | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 19143 |    11.11 | Using where |
++----+-------------+---------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+```
+
+## 2. Cree un índice del tipo que considere adecuado para la columna “nombreApellidoCliente” y vuelva a ejecutar la consulta con la misma consulta con EXPLAIN. Qué diferencia nota sobre los distintos atributos del plan de ejecución ahora que existe un índice sobre el campo a buscar.
+
+```sql
+CREATE FULLTEXT INDEX idxNombreApellidoCliente ON cliente (nombreApellidoCliente);
+```
+
+Nuevo resultado:
+
+```
++----+-------------+---------+------------+------+--------------------------+------+---------+------+-------+----------+-------------+
+| id | select_type | table   | partitions | type | possible_keys            | key  | key_len | ref  | rows  | filtered | Extra       |
++----+-------------+---------+------------+------+--------------------------+------+---------+------+-------+----------+-------------+
+|  1 | SIMPLE      | cliente | NULL       | ALL  | idxNombreApellidoCliente | NULL | NULL    | NULL | 19925 |    11.11 | Using where |
++----+-------------+---------+------------+------+--------------------------+------+---------+------+-------+----------+-------------+
+```
+
+## 3. Investigue qué tipos de índices existen y en qué caso se utilizan. ¿Qué índices se crean por defecto en las tablas?
+
+- ************************************Primary Key Index:************************************ Índice de clave primaria. Garantiza la unicidad de los valores en esa columna y acelera la búsqueda y recuperación.
+- ************************************Foreign Key Index:************************************ Se crea en la columna que está relacionada con la clave primaria de otra tabla. Ayuda a mantener la integridad referencial.
+- ******************************Spartial Index:****************************** Índice espacial que se usa en columnas de datos especiales como geométricas y puntos.
+- ********************************Composite Index:******************************** Se crea en múltiples columnas. Útil cuando buscamos registros basados en la combinación de atributos.
+- **************************Unique Index:************************** Se usa para garantizar que los valores en una columna sean únicos, pero no impide valores nulos.
+- ********************************Full-Text Index:******************************** Índice de texto completo que se usa para realizar búsquedas de texto avanzadas en columnas de texto. Permite búsquedas de palabras claves, frases, etc. Útil cuando se hacen búsquedas de texto en lugar de coincidencias exactas.
+- **************************Prefix Index:************************** Se crea en una parte específica de una columna de texto. Puede mejorar el rendimiento en búsquedas cuando solo se necesitan coincidencias en una parte.
+- **************************Memory Index:************************** Se almacena en RAM.
