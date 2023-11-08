@@ -43,8 +43,6 @@ WHERE añoDeIngreso = '2019'
 
 ### b. Obtener el nombre de los estudiantes con nacionalidad “Argentina” que NO estén en la carrera con código “LI07”
 
-- Preguntar cuál sería correcta.
-
 ```sql
 -- Forma 1
 SELECT nombreCompleto
@@ -230,7 +228,7 @@ ORDER BY dniCliente ASC;
 
 ## 3. Hallar aquellos clientes que para todas sus reparaciones siempre hayan usado su tarjeta de crédito primaria (nunca la tarjeta secundaria). Realice la consulta en ambas bases.
 
-// Preguntar como hacer para que los clientes aparezcan una sola vez.
+// Preguntar como hacer para que los clientes aparezcan una sola vez. => con el `DISTINCT`
 
 ```sql
 USE reparacion;
@@ -244,13 +242,6 @@ WHERE c.tarjetaPrimaria = r.tarjetaReparacion
         WHERE c.tarjetaSecundaria = r.tarjetaReparacion
     )
 GROUP BY c.dniCliente;
-
--- Son lo mismo??
-
-SELECT c.dniCliente, c.nombreApellidoCliente
-FROM cliente as c NATURAL JOIN reparacion as r
-WHERE c.tarjetaPrimaria = r.tarjetaReparacion
-    AND c.tarjetaSecundaria <> r.tarjetaReparacion;
 ```
 
 ```sql
@@ -293,11 +284,10 @@ WHERE ciudadCliente = ciudadSucursal;
 
 ### 5.1. Realice la consulta sin utilizar la vista creada anteriormente
 
-// Preguntar cuál forma es mejor
 ```sql
 USE reparacion;
 
--- Solo preguntar si sería así si se usará NOT EXISTS
+-- Con NOT EXISTS
 SELECT c.dniCliente, c.nombreApellidoCliente
 FROM cliente as c
 WHERE NOT EXISTS (
@@ -313,24 +303,20 @@ WHERE NOT EXISTS (
 )
 LIMIT 100;
 
--- Opción 1
-SELECT c.dniCliente, c.nombreApellidoCliente
-FROM reparacion as r NATURAL JOIN cliente as c
-    NATURAL JOIN sucursal as s
-WHERE c.ciudadCliente = s.ciudadSucursal
-LIMIT 100;
-
--- Opción 2
+-- 1. Obtiene todas las sucursales de la ciudad del cliente
+-- 2. Obtiene todas las sucursales de la misma ciudad del cliente en las que haya hecho reparaciones al menos una vez.
+-- 3. Si la cantidad de sucursales de la misma ciudad en las que hizo reparaciones es igual a las sucursales de la misma ciudad que el cliente, el cliente aparece en la tabla resultado.
 SELECT c.dniCliente, c.nombreApellidoCliente
 FROM cliente as c
-WHERE c.dniCliente IN (
-    SELECT r.dniCliente
-    FROM reparacion as r
-    WHERE r.codSucursal IN (
-        SELECT s.codSucursal
-        FROM sucursal as s
-        WHERE s.ciudadSucursal = c.ciudadCliente
-    )
+WHERE (
+    (SELECT COUNT(s.codSucursal)
+    FROM sucursal s
+    WHERE c.ciudadCliente = s.ciudadSucursal)
+    =
+    (SELECT COUNT DISTINCT(r.codSucural)
+    FROM reparacion r NATURAL JOIN sucursal s
+    WHERE c.dniCliente = r.dniCliente AND
+        c.ciudadCliente = s.ciudadSucursal)
 )
 LIMIT 100;
 ```
@@ -350,7 +336,6 @@ WHERE dniCliente IN (
     )
 )
 LIMIT 100;
--- Preguntar de qué otra forma se puede hacer pq tarda mucho
 ```
 
 ### 5.2. Realice la consulta utilizando la vista creada anteriormente
@@ -490,35 +475,24 @@ where r.dnicliente=c.dnicliente
 
 ### 11.1. ¿Qué atributos del plan de ejecución encuentra relevantes para evaluar la performance de la consulta?
 
-- Los atributos relevantes para la performance de la consulta son r.dniCliente y r.fechaInicioReparacion.
+- Los atributos relevantes son:
+  - **Type**: Determina si se usa el join eficiente.
+  - **Rows**: Menos filas => Más eficiente
+  - **Key**: Determina si se usan los índices adecuados.
+  - **Extra**
 
 ### 11.2. Observe en particular el atributo type ¿cómo se están aplicando los JOIN entre las tablas involucradas?
 
-//Preguntar
-- Los primeros dos JOIN se aplican para todas las tuplas de todas las tablas.
-- Los últimos no, uno usa r.dniCliente, el otro usa r.dniCliente y r.fechaInicioReparacion.
+
+- Las tablas *s* y *r* se escanean en su totalidad (**ALL**). La tabla *c* y la tabla *rv* se unen mediante claves primarias y se usan índices (**eq_ref**), esto es más eficiente porque las tablas se escanean parcialmente.
 
 ### 11.3. Según lo que observó en los puntos anteriores, ¿qué mejoras se pueden realizar para optimizar la consulta?
 
-- Podríamos usar NATURAL JOIN para reparacion cliente (por dniCliente), sucursal (por codSucursal) y revisionreparacion (por dniCliente y fechaInicioReparacion)
+- Podríamos agregar índices a las tablas *s* y *r*, por ejemplo, para los atributos `ciudadsucursal` y/o `m2`.
 
 ### 11.4. Aplique las mejoras propuestas y vuelva a analizar el plan de ejecución. ¿Qué cambios observa?
 
-```sql
-select count(r.dniCliente)
-from reparacion r NATURAL JOIN cliente c
-    NATURAL JOIN sucursal s
-    NATURAL JOIN revisionreparacion rv
-where r.dnicliente=c.dnicliente
-    and r.codsucursal=s.codsucursal
-    and r.dnicliente=rv.dnicliente
-    and r.fechainicioreparacion=rv.fechainicioreparacion
-    and empleadoreparacion = 'Maidana'
-    and s.m2<200
-    and s.ciudadsucursal='La Plata';
-```
-
-- No hay cambios, ayuda xd.
+- Disminuyó la cantidad de filas. Sin embargo no disminuyó en la tabla r, ya que no tenemos índices en ella.
 
 # Índices.
 
